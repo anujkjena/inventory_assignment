@@ -75,7 +75,7 @@ export default class Inventory {
 
   /**
    * Calculate masks quantity picked from UK & Germany
-   * @param maskQuantity gloves quantity
+   * @param maskQuantity masks quantity
    * @param shippingCountry country from item to be shipped
    * @param passportCountry origin country of user's passport
    * @returns an object with following keys(maskQuantityPickFromGermany, maskQuantityPickFromUK)
