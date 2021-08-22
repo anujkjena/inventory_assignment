@@ -1,7 +1,7 @@
 import Inventory from './inventory.js'
 
 const inventoryObject = new Inventory();
-console.log('INPUT 1: UK:B123AB1234567:Gloves:20:Mask:10')
+console.log('\nINPUT 1: UK:B123AB1234567:Gloves:20:Mask:10')
 let output = inventoryObject.calculatePriceAndInventory('UK:B123AB1234567:Gloves:20:Mask:10')
 console.log(`OUTPUT 1: ${output}\n`)
 console.log('INPUT 2: Germany:B123AB1234567:Gloves:22:Mask:10')

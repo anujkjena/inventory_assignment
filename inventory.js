@@ -35,28 +35,28 @@ export default class Inventory {
     const maskQuantity = inputData.data.firstItemType === constants.mask ? inputData.data.firstItemQuantity : inputData.data.secondItemQuantity
     const glovesQuantity = inputData.data.firstItemType === constants.gloves ? inputData.data.firstItemQuantity : inputData.data.secondItemQuantity
     if(inputData.data.country === constants.countryUK) {
-      const tempMaskResultUK = this.calculateMaskQuantityUK(maskQuantity)
+      const tempMaskResultUK = this.calculateMaskQuantity(maskQuantity, constants.countryGermany, inputData.data.passportCountry)
       maskQuantityPickFromUK = tempMaskResultUK.maskQuantityPickFromUK
       maskQuantityPickFromGermany = tempMaskResultUK.maskQuantityPickFromGermany
       price += maskQuantityPickFromUK * itemInventory.UK.Mask.price + maskQuantityPickFromGermany * itemInventory.Germany.Mask.price
       price += maskQuantityPickFromGermany === 0 ? 0 : this.calculateShippingCharge(maskQuantityPickFromGermany, constants.countryGermany, inputData.data.passportCountry)
-      const tempGlovesResultUK = this.calculateGlovesQuantityUK(glovesQuantity)
+      const tempGlovesResultUK = this.calculateGlovesQuantity(glovesQuantity, constants.countryGermany, inputData.data.passportCountry)
       glovesQuantityPickFromUK = tempGlovesResultUK.glovesQuantityPickFromUK
       glovesQuantityPickFromGermany = tempGlovesResultUK.glovesQuantityPickFromGermany
       price += glovesQuantityPickFromUK * itemInventory.UK.Gloves.price + glovesQuantityPickFromGermany * itemInventory.Germany.Gloves.price
       price += glovesQuantityPickFromGermany === 0 ? 0 : this.calculateShippingCharge(glovesQuantityPickFromGermany, constants.countryGermany, inputData.data.passportCountry)
       return `${price}:${this.maskQuantityRemainingInUK}:${this.maskQuantityRemainingInGermany}:${this.glovesQuantityRemainingInUK}:${this.glovesQuantityRemainingInGermany}`
     } else {
-      const tempMaskResultGermany = this.calculateMaskQuantityGermany(maskQuantity)
+      const tempMaskResultGermany = this.calculateMaskQuantity(maskQuantity, constants.countryUK, inputData.data.passportCountry)
       maskQuantityPickFromUK = tempMaskResultGermany.maskQuantityPickFromUK
       maskQuantityPickFromGermany = tempMaskResultGermany.maskQuantityPickFromGermany
       price += maskQuantityPickFromUK * itemInventory.UK.Mask.price + maskQuantityPickFromGermany * itemInventory.Germany.Mask.price
-      price += maskQuantityPickFromGermany === 0 ? 0 : this.calculateShippingCharge(maskQuantityPickFromUK, constants.countryUK, inputData.data.passportCountry)
-      const tempGlovesResultGermany = this.calculateGlovesQuantityGermany(glovesQuantity)
+      price += maskQuantityPickFromUK === 0 ? 0 : this.calculateShippingCharge(maskQuantityPickFromUK, constants.countryUK, inputData.data.passportCountry)
+      const tempGlovesResultGermany = this.calculateGlovesQuantity(glovesQuantity, constants.countryUK, inputData.data.passportCountry)
       glovesQuantityPickFromUK = tempGlovesResultGermany.glovesQuantityPickFromUK
       glovesQuantityPickFromGermany = tempGlovesResultGermany.glovesQuantityPickFromGermany
       price += glovesQuantityPickFromUK * itemInventory.UK.Gloves.price + glovesQuantityPickFromGermany * itemInventory.Germany.Gloves.price
-      price += glovesQuantityPickFromGermany === 0 ? 0 : this.calculateShippingCharge(glovesQuantityPickFromUK, constants.countryUK, inputData.data.passportCountry)
+      price += glovesQuantityPickFromUK === 0 ? 0 : this.calculateShippingCharge(glovesQuantityPickFromUK, constants.countryUK, inputData.data.passportCountry)
       return `${price}:${this.maskQuantityRemainingInUK}:${this.maskQuantityRemainingInGermany}:${this.glovesQuantityRemainingInUK}:${this.glovesQuantityRemainingInGermany}`
     }
   }
@@ -74,96 +74,161 @@ export default class Inventory {
   }
 
   /**
-   * Calculate required gloves quantity in UK & Germany inventory when user place order in Germany
-   * @param glovesQuantity required gloves quantity
-   * @returns An object with following keys(glovesQuantityPickFromUK , glovesQuantityPickFromGermany)
+   * Calculate masks quantity picked from UK & Germany
+   * @param maskQuantity gloves quantity
+   * @param shippingCountry country from item to be shipped
+   * @param passportCountry origin country of user's passport
+   * @returns an object with following keys(maskQuantityPickFromGermany, maskQuantityPickFromUK)
    */
-  calculateGlovesQuantityGermany(glovesQuantity) {
-    const returnObject = {
-      glovesQuantityPickFromGermany: 0,
-      glovesQuantityPickFromUK: 0
-    }
-    if( glovesQuantity >= this.glovesQuantityRemainingInGermany) {
-      returnObject.glovesQuantityPickFromGermany = this.glovesQuantityRemainingInGermany
-      this.glovesQuantityRemainingInGermany = 0
-      returnObject.glovesQuantityPickFromUK = glovesQuantity === this.glovesQuantityRemainingInGermany ? 0 :  glovesQuantity - returnObject.glovesQuantityPickFromGermany
-      this.glovesQuantityRemainingInUK = this.glovesQuantityRemainingInUK - returnObject.glovesQuantityPickFromUK
-    } else {
-      returnObject.glovesQuantityPickFromGermany = glovesQuantity
-      this.glovesQuantityRemainingInGermany = this.glovesQuantityRemainingInGermany - returnObject.glovesQuantityPickFromGermany
-      returnObject.glovesQuantityPickFromUK = 0
-    }
-    return returnObject
-  }
-
-  /**
-   * Calculate required mask quantity in UK & Germany inventory when user place order in Germany
-   * @param maskQuantity required mask quantity
-   * @returns An object with following keys(maskQuantityPickFromUK , maskQuantityPickFromGermany)
-   */
-  calculateMaskQuantityGermany(maskQuantity) {
+  calculateMaskQuantity(maskQuantity, shippingCountry, passportCountry) {
     const returnObject = {
       maskQuantityPickFromGermany: 0,
       maskQuantityPickFromUK: 0
     }
-    if( maskQuantity >= this.maskQuantityRemainingInGermany) {
-      returnObject.maskQuantityPickFromGermany = this.maskQuantityRemainingInGermany
-      this.maskQuantityRemainingInGermany = 0
-      returnObject.maskQuantityPickFromUK = maskQuantity === this.maskQuantityRemainingInGermany ? 0 :  maskQuantity - returnObject.maskQuantityPickFromGermany
-      this.maskQuantityRemainingInUK = this.maskQuantityRemainingInUK - returnObject.maskQuantityPickFromUK
+    const tempRemainderQuantity = maskQuantity % 10
+    const tempQuotientQuantity = maskQuantity - tempRemainderQuantity
+    let maskSalePriceInUKForReminderQuantity = 0
+    let maskSalePriceInUKForQuotientQuantity = 0
+    let maskSalePriceInGermanyForReminderQuantity = 0
+    let maskSalePriceInGermanyForQuotientQuantity = 0
+    if(shippingCountry === constants.countryGermany) {
+      maskSalePriceInUKForReminderQuantity = tempRemainderQuantity * itemInventory.UK.Mask.price
+      maskSalePriceInUKForQuotientQuantity = tempQuotientQuantity * itemInventory.UK.Mask.price
+      maskSalePriceInGermanyForReminderQuantity = tempRemainderQuantity * itemInventory.Germany.Mask.price + this.calculateShippingCharge(tempRemainderQuantity, shippingCountry, passportCountry)
+      maskSalePriceInGermanyForQuotientQuantity = tempQuotientQuantity * itemInventory.Germany.Mask.price + this.calculateShippingCharge(tempQuotientQuantity, shippingCountry, passportCountry)
     } else {
-      returnObject.maskQuantityPickFromGermany = maskQuantity
-      this.maskQuantityRemainingInGermany = this.maskQuantityRemainingInGermany - returnObject.maskQuantityPickFromGermany
-      returnObject.maskQuantityPickFromUK = 0
+      maskSalePriceInUKForReminderQuantity = tempRemainderQuantity * itemInventory.UK.Mask.price + this.calculateShippingCharge(tempRemainderQuantity, shippingCountry, passportCountry)
+      maskSalePriceInUKForQuotientQuantity = tempQuotientQuantity * itemInventory.UK.Mask.price + this.calculateShippingCharge(tempQuotientQuantity, shippingCountry, passportCountry)
+      maskSalePriceInGermanyForReminderQuantity = tempRemainderQuantity * itemInventory.Germany.Mask.price
+      maskSalePriceInGermanyForQuotientQuantity = tempQuotientQuantity * itemInventory.Germany.Mask.price
+    }
+    if(maskSalePriceInUKForReminderQuantity <= maskSalePriceInGermanyForReminderQuantity) {
+      if( tempRemainderQuantity >= this.maskQuantityRemainingInUK) {
+        returnObject.maskQuantityPickFromUK += this.maskQuantityRemainingInUK
+        returnObject.maskQuantityPickFromGermany += tempRemainderQuantity === this.maskQuantityRemainingInUK ? 0 :  tempRemainderQuantity - this.maskQuantityRemainingInUK
+        this.maskQuantityRemainingInGermany = this.maskQuantityRemainingInGermany - (tempRemainderQuantity - this.maskQuantityRemainingInUK)
+        this.maskQuantityRemainingInUK = 0
+      } else {
+        returnObject.maskQuantityPickFromUK += tempRemainderQuantity
+        this.maskQuantityRemainingInUK = this.maskQuantityRemainingInUK - tempRemainderQuantity
+        returnObject.maskQuantityPickFromGermany += 0
+      }
+    } else {
+      if( tempRemainderQuantity >= this.maskQuantityRemainingInGermany) {
+        returnObject.maskQuantityPickFromGermany += this.maskQuantityRemainingInGermany
+        returnObject.maskQuantityPickFromUK += tempRemainderQuantity === this.maskQuantityRemainingInGermany ? 0 :  tempRemainderQuantity - this.maskQuantityRemainingInGermany
+        this.maskQuantityRemainingInUK = this.maskQuantityRemainingInUK - (tempRemainderQuantity - this.maskQuantityRemainingInGermany)
+        this.maskQuantityRemainingInGermany = 0
+      } else {
+        returnObject.maskQuantityPickFromGermany += tempRemainderQuantity
+        this.maskQuantityRemainingInGermany = this.maskQuantityRemainingInGermany - tempRemainderQuantity
+        returnObject.maskQuantityPickFromUK += 0
+      }
+    }
+    if(maskSalePriceInUKForQuotientQuantity <= maskSalePriceInGermanyForQuotientQuantity) {
+      if( tempQuotientQuantity >= this.maskQuantityRemainingInUK) {
+        returnObject.maskQuantityPickFromUK += this.maskQuantityRemainingInUK
+        returnObject.maskQuantityPickFromGermany += tempQuotientQuantity === this.maskQuantityRemainingInUK ? 0 :  tempQuotientQuantity - this.maskQuantityRemainingInUK
+        this.maskQuantityRemainingInGermany = this.maskQuantityRemainingInGermany - (tempQuotientQuantity - this.maskQuantityRemainingInUK)
+        this.maskQuantityRemainingInUK = 0
+      } else {
+        returnObject.maskQuantityPickFromUK += tempQuotientQuantity
+        this.maskQuantityRemainingInUK = this.maskQuantityRemainingInUK - tempQuotientQuantity
+        returnObject.maskQuantityPickFromGermany += 0
+      }
+    } else {
+      if( tempQuotientQuantity >= this.maskQuantityRemainingInGermany) {
+        returnObject.maskQuantityPickFromGermany += this.maskQuantityRemainingInGermany
+        returnObject.maskQuantityPickFromUK += tempQuotientQuantity === this.maskQuantityRemainingInGermany ? 0 :  tempQuotientQuantity - this.maskQuantityRemainingInGermany
+        this.maskQuantityRemainingInUK = this.maskQuantityRemainingInUK - (tempQuotientQuantity - this.maskQuantityRemainingInGermany)
+        this.maskQuantityRemainingInGermany = 0
+      } else {
+        returnObject.maskQuantityPickFromGermany += tempQuotientQuantity
+        this.maskQuantityRemainingInGermany = this.maskQuantityRemainingInGermany - tempQuotientQuantity
+        returnObject.maskQuantityPickFromUK += 0
+      }
     }
     return returnObject
   }
 
   /**
-   * Calculate required gloves quantity in UK & Germany inventory when user place order in UK
-   * @param glovesQuantity required gloves quantity
-   * @returns An object with following keys(glovesQuantityPickFromUK , glovesQuantityPickFromGermany)
+   * Calculate gloves quantity picked from UK & Germany
+   * @param glovesQuantity gloves quantity
+   * @param shippingCountry country from item to be shipped
+   * @param passportCountry origin country of user's passport
+   * @returns an object with following keys(glovesQuantityPickFromGermany, glovesQuantityPickFromUK)
    */
-  calculateGlovesQuantityUK(glovesQuantity) {
+  calculateGlovesQuantity(glovesQuantity, shippingCountry, passportCountry) {
     const returnObject = {
-      glovesQuantityPickFromUK: 0,
-      glovesQuantityPickFromGermany: 0
+      glovesQuantityPickFromGermany: 0,
+      glovesQuantityPickFromUK: 0
     }
-    if( glovesQuantity >= this.glovesQuantityRemainingInUK) {
-      returnObject.glovesQuantityPickFromUK = this.glovesQuantityRemainingInUK
-      this.glovesQuantityRemainingInUK = 0
-      returnObject.glovesQuantityPickFromGermany = glovesQuantity === this.glovesQuantityRemainingInUK ? 0 :  glovesQuantity - returnObject.glovesQuantityPickFromUK
-      this.glovesQuantityRemainingInGermany = this.glovesQuantityRemainingInGermany - returnObject.glovesQuantityPickFromGermany
+    const tempRemainderQuantity = glovesQuantity % 10
+    const tempQuotientQuantity = glovesQuantity - tempRemainderQuantity
+    let glovesSalePriceInUKForReminderQuantity = 0
+    let glovesSalePriceInUKForQuotientQuantity = 0
+    let glovesSalePriceInGermanyForReminderQuantity = 0
+    let glovesSalePriceInGermanyForQuotientQuantity = 0
+    if(shippingCountry === constants.countryGermany) {
+      glovesSalePriceInUKForReminderQuantity = tempRemainderQuantity * itemInventory.UK.Gloves.price
+      glovesSalePriceInUKForQuotientQuantity = tempQuotientQuantity * itemInventory.UK.Gloves.price
+      glovesSalePriceInGermanyForReminderQuantity = tempRemainderQuantity * itemInventory.Germany.Gloves.price + this.calculateShippingCharge(tempRemainderQuantity, shippingCountry, passportCountry)
+      glovesSalePriceInGermanyForQuotientQuantity = tempQuotientQuantity * itemInventory.Germany.Gloves.price + this.calculateShippingCharge(tempQuotientQuantity, shippingCountry, passportCountry)
     } else {
-      returnObject.glovesQuantityPickFromUK = glovesQuantity
-      this.glovesQuantityRemainingInUK = this.glovesQuantityRemainingInUK - returnObject.glovesQuantityPickFromUK
-      returnObject.glovesQuantityPickFromGermany = 0
+      glovesSalePriceInUKForReminderQuantity = tempRemainderQuantity * itemInventory.UK.Gloves.price + this.calculateShippingCharge(tempRemainderQuantity, shippingCountry, passportCountry)
+      glovesSalePriceInUKForQuotientQuantity = tempQuotientQuantity * itemInventory.UK.Gloves.price + this.calculateShippingCharge(tempQuotientQuantity, shippingCountry, passportCountry)
+      glovesSalePriceInGermanyForReminderQuantity = tempRemainderQuantity * itemInventory.Germany.Gloves.price
+      glovesSalePriceInGermanyForQuotientQuantity = tempQuotientQuantity * itemInventory.Germany.Gloves.price
+    }
+    if(glovesSalePriceInUKForReminderQuantity <= glovesSalePriceInGermanyForReminderQuantity) {
+      if( tempRemainderQuantity >= this.glovesQuantityRemainingInUK) {
+        returnObject.glovesQuantityPickFromUK += this.glovesQuantityRemainingInUK
+        returnObject.glovesQuantityPickFromGermany += tempRemainderQuantity === this.glovesQuantityRemainingInUK ? 0 :  tempRemainderQuantity - this.glovesQuantityRemainingInUK
+        this.glovesQuantityRemainingInGermany = this.glovesQuantityRemainingInGermany - (tempRemainderQuantity - this.glovesQuantityRemainingInUK)
+        this.glovesQuantityRemainingInUK = 0
+      } else {
+        returnObject.glovesQuantityPickFromUK += tempRemainderQuantity
+        this.glovesQuantityRemainingInUK = this.glovesQuantityRemainingInUK - tempRemainderQuantity
+        returnObject.glovesQuantityPickFromGermany += 0
+      }
+    } else {
+      if( tempRemainderQuantity >= this.glovesQuantityRemainingInGermany) {
+        returnObject.glovesQuantityPickFromGermany += this.glovesQuantityRemainingInGermany
+        returnObject.glovesQuantityPickFromUK += tempRemainderQuantity === this.glovesQuantityRemainingInGermany ? 0 :  tempRemainderQuantity - this.glovesQuantityRemainingInGermany
+        this.glovesQuantityRemainingInUK = this.glovesQuantityRemainingInUK - (tempRemainderQuantity - this.glovesQuantityRemainingInGermany)
+        this.glovesQuantityRemainingInGermany = 0
+      } else {
+        returnObject.glovesQuantityPickFromGermany += tempRemainderQuantity
+        this.glovesQuantityRemainingInGermany = this.glovesQuantityRemainingInGermany - tempRemainderQuantity
+        returnObject.glovesQuantityPickFromUK += 0
+      }
+    }
+    if(glovesSalePriceInUKForQuotientQuantity <= glovesSalePriceInGermanyForQuotientQuantity) {
+      if( tempQuotientQuantity >= this.glovesQuantityRemainingInUK) {
+        returnObject.glovesQuantityPickFromUK += this.glovesQuantityRemainingInUK
+        returnObject.glovesQuantityPickFromGermany += tempQuotientQuantity === this.glovesQuantityRemainingInUK ? 0 :  tempQuotientQuantity - this.glovesQuantityRemainingInUK
+        this.glovesQuantityRemainingInGermany = this.glovesQuantityRemainingInGermany - (tempQuotientQuantity - this.glovesQuantityRemainingInUK)
+        this.glovesQuantityRemainingInUK = 0
+      } else {
+        returnObject.glovesQuantityPickFromUK += tempQuotientQuantity
+        this.glovesQuantityRemainingInUK = this.glovesQuantityRemainingInUK - tempQuotientQuantity
+        returnObject.glovesQuantityPickFromGermany += 0
+      }
+    } else {
+      if( tempQuotientQuantity >= this.glovesQuantityRemainingInGermany) {
+        returnObject.glovesQuantityPickFromGermany += this.glovesQuantityRemainingInGermany
+        returnObject.glovesQuantityPickFromUK += tempQuotientQuantity === this.glovesQuantityRemainingInGermany ? 0 :  tempQuotientQuantity - this.glovesQuantityRemainingInGermany
+        this.glovesQuantityRemainingInUK = this.glovesQuantityRemainingInUK - (tempQuotientQuantity - this.glovesQuantityRemainingInUK)
+        this.glovesQuantityRemainingInGermany = 0
+      } else {
+        returnObject.glovesQuantityPickFromGermany += tempQuotientQuantity
+        this.glovesQuantityRemainingInGermany = this.glovesQuantityRemainingInGermany - tempQuotientQuantity
+        returnObject.glovesQuantityPickFromUK += 0
+      }
     }
     return returnObject
   }
 
-  /**
-   * Calculate required mask quantity in UK & Germany inventory when user place order in UK
-   * @param maskQuantity required mask quantity
-   * @returns An object with following keys(maskQuantityPickFromUK , maskQuantityPickFromGermany)
-   */
-  calculateMaskQuantityUK(maskQuantity) {
-    const returnObject = {
-      maskQuantityPickFromUK: 0,
-      maskQuantityPickFromGermany: 0
-    }
-    if( maskQuantity >= this.maskQuantityRemainingInUK) {
-      returnObject.maskQuantityPickFromUK = this.maskQuantityRemainingInUK
-      this.maskQuantityRemainingInUK = 0
-      returnObject.maskQuantityPickFromGermany = maskQuantity === this.maskQuantityRemainingInUK ? 0 :  maskQuantity - returnObject.maskQuantityPickFromUK
-      this.maskQuantityRemainingInGermany = this.maskQuantityRemainingInGermany - returnObject.maskQuantityPickFromGermany
-    } else {
-      returnObject.maskQuantityPickFromUK = maskQuantity
-      this.maskQuantityRemainingInUK = this.maskQuantityRemainingInUK - returnObject.maskQuantityPickFromUK
-      returnObject.maskQuantityPickFromGermany = 0
-    }
-    return returnObject
-  }
 
   /**
    * Check items availability
